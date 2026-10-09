@@ -1,0 +1,59 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Marketplace Vendor / Web Source
+model Vendor {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique // e.g., "Jiji Ethiopia", "Mekina.net"
+  baseUrl   String
+  products  Product[]
+  createdAt DateTime  @default(now())
+}
+
+// Product Listing across all categories
+model Product {
+  id          Int      @id @default(autoincrement())
+  vendorId    Int
+  vendor      Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  externalId  String   // Combined with vendorId in @@unique below
+
+  // Core Listing Details
+  title       String
+  description String?  @db.Text
+  price       BigInt   // BigInt prevents integer overflow for real estate/vehicles in ETB
+  currency    String   @default("ETB")
+  category    String   // 'electronics', 'vehicles', 'real_estate', 'home', 'fashion', 'services'
+  subcategory String?  // 'mobile_phones', 'laptops', 'apartments_rent', 'passenger_cars'
+
+  // Visual Media & Web Link
+  imageUrl    String?  @db.Text
+  productUrl  String   @db.Text
+
+  // Seller Contact & Location
+  phoneNumber String?
+  city        String?
+  address     String?
+
+  // Flexible Category Metadata (Brand, Year, Specs, Transmission, Bedrooms, etc.)
+  attributes  Json?
+
+  // Timestamps
+  scrapedAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Scraper Upsert Lock: Ensures unique items per vendor
+  @@unique([vendorId, externalId])
+
+  // Performance Indexes
+  @@index([category, subcategory])
+  @@index([category, price])
+  @@index([city])
+  @@index([scrapedAt(sort: Desc)])
+}
