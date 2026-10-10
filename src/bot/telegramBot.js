@@ -1,7 +1,33 @@
 // src/bot/telegramBot.js
 require('dotenv').config();
+const express = require('express');
+const cron = require('node-cron');
 const { Telegraf, Markup } = require('telegraf');
 const { PrismaClient } = require('@prisma/client');
+const { runScraperPipeline } = require('../scrapers/runScrapers');
+
+// Lightweight Express HTTP Server for Render Health Checks
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.get('/', (req, res) => {
+    res.send('AradaGebeya Bot is running 🚀');
+});
+
+app.listen(PORT, () => {
+    console.log(`🌐 Health check server listening on port ${PORT}`);
+});
+
+// Automated Cron Job: Run scraper pipeline every 6 hours
+cron.schedule('0 */6 * * *', async () => {
+    console.log('⏰ [Cron] Triggering scheduled scraper pipeline (every 6 hours)...');
+    try {
+        await runScraperPipeline();
+        console.log('✅ [Cron] Scheduled scraper pipeline completed successfully.');
+    } catch (err) {
+        console.error('❌ [Cron] Scheduled scraping pipeline failed:', err);
+    }
+});
 
 const prisma = new PrismaClient();
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);

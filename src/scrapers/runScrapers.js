@@ -6,6 +6,7 @@ const { scrapeMekinaCars } = require('./mekinaScraper');
 const { scrapeEngochaCategory } = require('./engochaScraper');
 const { scrapeQefiraCategory } = require('./qefiraScraper');
 const { parsePrice, extractPhoneNumber } = require('../utils/parser');
+const { cleanStaleData } = require('../jobs/cleanStaleData');
 
 const prisma = new PrismaClient();
 
@@ -111,6 +112,13 @@ async function saveItemsToDatabase(vendorName, baseUrl, items, fallbackSubcatego
 async function main() {
     console.log('🚀 Starting multi-site market scraper pipeline...\n');
 
+    // 0. Clean stale data older than 30 days
+    try {
+        await cleanStaleData();
+    } catch (err) {
+        console.error('⚠️ Stale data cleanup warning:', err.message);
+    }
+
     // 1. Jiji Ethiopia
     console.log('--- [1/4] Scraping Jiji Ethiopia ---');
     for (const config of JIJI_CATEGORIES) {
@@ -164,6 +172,13 @@ async function main() {
     console.log('\n🎉 Multi-site market scraping pipeline completed successfully!');
 }
 
-main()
-    .catch((e) => console.error('❌ Pipeline Error:', e))
-    .finally(async () => await prisma.$disconnect());
+module.exports = {
+    runScraperPipeline: main,
+    main,
+};
+
+if (require.main === module) {
+    main()
+        .catch((e) => console.error('❌ Pipeline Error:', e))
+        .finally(async () => await prisma.$disconnect());
+}

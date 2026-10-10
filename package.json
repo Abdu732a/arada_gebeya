@@ -4,6 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "node src/bot/telegramBot.js",
+    "scrape": "node src/scrapers/runScrapers.js",
+    "cleanup": "node src/jobs/cleanStaleData.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
